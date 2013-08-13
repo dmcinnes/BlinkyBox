@@ -11,17 +11,16 @@ want to use an earlier version of Teensy.
 This is free to use and modify!
 */
 
-#include <avr/io.h>
-#include <avr/interrupt.h>
+/*#include <avr/io.h>*/
+/*#include <avr/interrupt.h>*/
 #include "LPD8806.h"
-#include "SPI.h"
-#include "Encoder.h"
+/*#include "Encoder.h"*/
   
   // LED constants  
   const unsigned int nLEDs = 16;
-  const unsigned int dataPin = 19;
-  const unsigned int clockPin = 21;
-  const unsigned int maxPower = 25;  // maximum brightness of LEDs
+  const unsigned int dataPin = 2;
+  const unsigned int clockPin = 3;
+  const unsigned int maxPower = 10;  // maximum brightness of LEDs
   
   // Constants used for rainbows
   const int NUM_COLORS = 16;
@@ -30,16 +29,16 @@ This is free to use and modify!
   const int rainbow_b[] = {  0,   0,   0,   0,   0,   0,   0,  32, 127, 127, 127, 127, 127,  83,  40,  20};
   
   // Button constants
-  const unsigned int redPin = 1;
-  const unsigned int yellowPin = 3;
-  const unsigned int greenPin = 5;
-  const unsigned int bluePin = 7;
-  const unsigned int whitePin = 9;
-  const unsigned int blackPin = 11;
+  const unsigned int redPin = 6;
+  const unsigned int yellowPin = 7;
+  const unsigned int greenPin = 8;
+  const unsigned int bluePin = 9;
+  const unsigned int whitePin = 10;
+  const unsigned int blackPin = 5;
   
   // Knob constants
-  const unsigned int encoderPinOne = 17;
-  const unsigned int encoderPinTwo = 15;
+  const unsigned int encoderPinOne = 1;
+  const unsigned int encoderPinTwo = 4;
   const unsigned int numPatterns = 23;
   
   LPD8806 strip = LPD8806(nLEDs, dataPin, clockPin);
@@ -47,10 +46,10 @@ This is free to use and modify!
   volatile int color = 0;
   volatile int disco = 0;
   
-  volatile int pattern = 0;
+  volatile int pattern = 3;
   volatile int prevKnobState = 0;
   
-  Encoder knob(encoderPinOne, encoderPinTwo);
+  /*Encoder knob(encoderPinOne, encoderPinTwo);*/
  
   volatile int alternateState = 0;
   volatile int rainbowState = 0;
@@ -58,42 +57,41 @@ This is free to use and modify!
   volatile int fadeState = 0;
   
 void setup() {
-    Serial.begin(9600);
-    Serial.println("Start setup!");
+    /*Serial.begin(9600);*/
+    /*Serial.println("Start setup!");*/
     
-    pinMode(redPin, INPUT_PULLUP);
-    attachInterrupt(redPin, interruptRed, FALLING);
-      
-    pinMode(yellowPin, INPUT_PULLUP);
-    attachInterrupt(yellowPin, interruptYellow, FALLING);
-    
-    pinMode(greenPin, INPUT_PULLUP);
-    attachInterrupt(greenPin, interruptGreen, FALLING);
-    
-    pinMode(bluePin, INPUT_PULLUP);
-    attachInterrupt(bluePin, interruptBlue, FALLING);
-    
-    pinMode(whitePin, INPUT_PULLUP);
-    attachInterrupt(whitePin, interruptWhite, FALLING);
-    
-    pinMode(blackPin, INPUT_PULLUP);
-    attachInterrupt(blackPin, interruptBlack, FALLING);
+    /*pinMode(redPin, INPUT_PULLUP);*/
+    /*attachInterrupt(redPin, interruptRed, FALLING);*/
+    /*  */
+    /*pinMode(yellowPin, INPUT_PULLUP);*/
+    /*attachInterrupt(yellowPin, interruptYellow, FALLING);*/
+    /**/
+    /*pinMode(greenPin, INPUT_PULLUP);*/
+    /*attachInterrupt(greenPin, interruptGreen, FALLING);*/
+    /**/
+    /*pinMode(bluePin, INPUT_PULLUP);*/
+    /*attachInterrupt(bluePin, interruptBlue, FALLING);*/
+    /**/
+    /*pinMode(whitePin, INPUT_PULLUP);*/
+    /*attachInterrupt(whitePin, interruptWhite, FALLING);*/
+    /**/
+    /*pinMode(blackPin, INPUT_PULLUP);*/
+    /*attachInterrupt(blackPin, interruptBlack, FALLING);*/
     
     // In the Teensy low power guide, they recommend turning unused pins to OUTPUT
-    int i; 
-    for (i=0; i < 34; i++) {
-       if (i % 2 == 0) {
-           pinMode(i, OUTPUT);
-       } else if (i > 21) {
-           pinMode(i, OUTPUT);
-       }
-    }
+    /*int i; */
+    /*for (i=0; i < 34; i++) {*/
+    /*   if (i % 2 == 0) {*/
+    /*       pinMode(i, OUTPUT);*/
+    /*   } else if (i > 21) {*/
+    /*       pinMode(i, OUTPUT);*/
+    /*   }*/
+    /*}*/
     
-    color = 0;
     strip.begin();
     strip.show(); 
     solidLights(127, 127, 127); 
-    Serial.println("End setup!");
+    /*Serial.println("End setup!");*/
 }
 
 void interruptRed() {
@@ -267,28 +265,35 @@ void clearStrip() {
 
 void changeLights(int pattern, int r, int g, int b) {
     // Using intervals of 4 because the knob I have is really sensitive.
-    if (pattern >= 0 && pattern < 4) {
-       solidLights(r, g, b);
-    } else if (pattern >= 4 && pattern < 8) {
-       fadeLights(1000, r, g, b); 
-    } else if (pattern >= 8 && pattern < 12) {
-       twinkleLights(300, r, g, b); 
-    } else if (pattern >= 12 && pattern < 16) {
-       raindropLights(1000, r, g, b); 
-    } else if (pattern >= 16 && pattern < 20) {
-       alternateLights(1000, r, g, b); 
-    } else if (pattern >= 20 && pattern < 24) {
-       onOffLights(1000, r, g, b); 
-    } 
+    switch(pattern) {
+        case 1: 
+            solidLights(r, g, b);
+            break;
+        case 2: 
+            fadeLights(1000, r, g, b); 
+            break;
+        case 3: 
+            twinkleLights(30, r, g, b); 
+            break;
+        case 4: 
+            raindropLights(1000, r, g, b); 
+            break;
+        case 5: 
+            alternateLights(1000, r, g, b); 
+            break;
+        case 6: 
+            onOffLights(1000, r, g, b); 
+            break;
+    }
 }
 
 void loop() {
     // Read knob
-    long knobState = knob.read();
-    if (knobState != prevKnobState ) {
-       prevKnobState = knobState;
-       pattern = knobState % numPatterns;  
-    }
+    /*long knobState = knob.read();*/
+    /*if (knobState != prevKnobState ) {*/
+    /*   prevKnobState = knobState;*/
+    /*   pattern = knobState % numPatterns;  */
+    /*}*/
   
     // Change LEDs based on state
     if (disco == 1) {
