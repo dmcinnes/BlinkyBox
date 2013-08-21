@@ -86,30 +86,6 @@ void setup() {
   /*Serial.println("End setup!");*/
 }
 
-void interruptRed() {
-  color = 1;
-}
-
-void interruptYellow() {
-  color = 2;
-}
-
-void interruptGreen() {
-  color = 3;
-}
-
-void interruptBlue() {
-  color = 4;
-}
-
-void interruptWhite() {
-  color = 0;
-}
-
-void interruptBlack() {
-  disco = 1;
-}
-
 void setIfPresent(int idx, int r, int g, int b) {
   // Don't write to non-existent pixels
   if (idx >= 0 && idx < strip.numPixels()) {
