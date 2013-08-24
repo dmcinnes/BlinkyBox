@@ -11,37 +11,36 @@
    This is free to use and modify!
  */
 
-// Encoder doesn't know about attiny84
-// #define CORE_NUM_INTERRUPT 1
-// #define CORE_INT0_PIN      2
 
 #include "LPD8806.h"
-#include "Encoder.h"
 
 // LED constants
-const unsigned int nLEDs = 16;
-const unsigned int dataPin = 2;
-const unsigned int clockPin = 3;
+const unsigned int nLEDs    = 16;
+const unsigned int dataPin  = 6;
+const unsigned int clockPin = 7;
 const unsigned int maxPower = 10;  // maximum brightness of LEDs
 
 // Constants used for rainbows
 const int NUM_COLORS = 16;
-const int rainbow_r[] = {127, 127, 127, 127, 127,  64,   0,   0,   0,   0,   0,  20,  40,  83, 127, 127};
-const int rainbow_g[] = {  0,  20,  40,  83, 127, 127, 127, 127, 127,  64,   0,   0,   0,   0,   0,   0};
-const int rainbow_b[] = {  0,   0,   0,   0,   0,   0,   0,  32, 127, 127, 127, 127, 127,  83,  40,  20};
+const int rainbow_r[] = {13, 13, 13, 13, 13,  6,   0,   0,   0,   0,   0,  2,  4,  8, 13, 13};
+const int rainbow_g[] = {  0,  2,  4,  8, 13, 13, 13, 13, 13,  6,   0,   0,   0,   0,   0,   0};
+const int rainbow_b[] = {  0,   0,   0,   0,   0,   0,   0,  3, 13, 13, 13, 13, 13,  8,  4,  2};
+
 
 // Button constants
-const unsigned int whitePin  = 5;
-const unsigned int redPin    = 6;
-const unsigned int yellowPin = 7;
-const unsigned int greenPin  = 9;
-const unsigned int bluePin   = 10;
+const unsigned int whitePin  = 0;
+const unsigned int redPin    = 1;
+const unsigned int yellowPin = 2;
+const unsigned int greenPin  = 3;
+const unsigned int bluePin   = 4;
 
-const unsigned int knobButtonPin = 4;
+const unsigned int knobButtonPin = 5;
+
+const unsigned int colorMap[] = {whitePin, redPin, yellowPin, greenPin, bluePin};
 
 // Knob constants
-const unsigned int encoderPinOne = 8; // INT0
-const unsigned int encoderPinTwo = 1;
+const unsigned int encoderPinOne = 9;
+const unsigned int encoderPinTwo = 10;
 const unsigned int numPatterns   = 6;
 
 LPD8806 strip = LPD8806(nLEDs, dataPin, clockPin);
@@ -49,10 +48,7 @@ LPD8806 strip = LPD8806(nLEDs, dataPin, clockPin);
 volatile int color = 0;
 volatile int disco = 0;
 
-volatile int pattern = 0;
-volatile int prevKnobState = 0;
-
-Encoder knob(encoderPinOne, encoderPinTwo);
+volatile int pattern = 1;
 
 volatile int alternateState = 0;
 volatile int rainbowState = 0;
@@ -61,21 +57,24 @@ volatile int fadeState = 0;
 
 void setup() {
 
-  // knob button
+  // arcade buttons
+  pinMode(0, INPUT_PULLUP);
+  pinMode(1, INPUT_PULLUP);
+  pinMode(2, INPUT_PULLUP);
+  pinMode(3, INPUT_PULLUP);
   pinMode(4, INPUT_PULLUP);
 
-  // arcade buttons
+  // knob button
   pinMode(5, INPUT_PULLUP);
-  pinMode(6, INPUT_PULLUP);
-  pinMode(7, INPUT_PULLUP);
 
+  // rotary knob
   pinMode(9, INPUT_PULLUP);
   pinMode(10, INPUT_PULLUP);
 
-  // set pins 4, 5, 6 & 7 to fire interrupts
-  PCMSK0 |= (1<<PCINT4) | (1<<PCINT5) | (1<<PCINT6) | (1<<PCINT7);
+  // set pins 0-4 to fire interrupts for buttons
+  PCMSK0 |= (1<<PCINT0) | (1<<PCINT1) | (1<<PCINT2) | (1<<PCINT3) | (1<<PCINT4) | (1<<PCINT5);
 
-  // set pins 9 & 10 to fire interrupts
+  // set pins 9 & 10 to fire interrupts for the rotary knob
   PCMSK1 |= (1<<PCINT9) | (1<<PCINT10);
 
   // Enable PCINT interrupts 0-7 and 8-11
@@ -259,13 +258,6 @@ void changeLights(int pattern, int r, int g, int b) {
 }
 
 void loop() {
-  // Read knob
-  long knobState = knob.read();
-  if (knobState != prevKnobState) {
-    prevKnobState = knobState;
-    pattern = abs(int(knobState / 4)) % numPatterns;
-  }
-
   // Change LEDs based on state
   if (disco == 1) {
     discoRainbowLights(1000);
@@ -285,24 +277,41 @@ void loop() {
   }
 }
 
+// Buttons
 // Pins 0-7
 ISR(PCINT0_vect) {
-  if (digitalRead(4) == LOW) {
+  if (digitalRead(knobButtonPin) == LOW) {
     disco = 1;
-  } else if (digitalRead(5) == LOW) {
-    color = 0;
-  } else if (digitalRead(6) == LOW) {
-    color = 0;
-  } else if (digitalRead(7) == LOW) {
-    color = 1;
+  }
+
+  // arcade buttons
+  for (unsigned int i = 0; i < 5; i++) {
+    if (digitalRead(colorMap[i]) == LOW) {
+      color = i;
+      break;
+    }
   }
 }
 
+// from here
+// http://www.circuitsathome.com/mcu/rotary-encoder-interrupt-service-routine-for-avr-micros
+static uint8_t old_AB = 3;  //lookup table index
+static int8_t encval = 0;   //encoder value
+static const int8_t enc_states [] PROGMEM = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};  //encoder lookup table
+
+// Rotary Encoder
 // Pins 8-11
 ISR(PCINT1_vect) {
-  if (digitalRead(9) == LOW) {
-    color = 3;
-  } else if (digitalRead(10) == LOW) {
-    color = 4;
+  /**/
+  old_AB <<=2;  //remember previous state
+  old_AB |= ( PINB & 0x03 ); // reading PB0 and PB1, pins 10 and 9
+  encval += pgm_read_byte(&(enc_states[( old_AB & 0x0f )]));
+
+  if ( encval > 3 ) {  //four steps forward
+    pattern = (pattern + 1) % numPatterns;
+    encval = 0;
+  } else if ( encval < -3 ) {  //four steps backwards
+    pattern = (pattern - 1) % numPatterns;
+    encval = 0;
   }
 }
