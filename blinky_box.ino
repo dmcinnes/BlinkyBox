@@ -31,16 +31,16 @@ const int rainbow_g[] = {  0,  20,  40,  83, 127, 127, 127, 127, 127,  64,   0, 
 const int rainbow_b[] = {  0,   0,   0,   0,   0,   0,   0,  32, 127, 127, 127, 127, 127,  83,  40,  20};
 
 // Button constants
-const unsigned int whitePin  = 6;
-const unsigned int redPin    = 7;
-const unsigned int yellowPin = 8;
+const unsigned int whitePin  = 5;
+const unsigned int redPin    = 6;
+const unsigned int yellowPin = 7;
 const unsigned int greenPin  = 9;
 const unsigned int bluePin   = 10;
 
-const unsigned int knobPin   = 5;
+const unsigned int knobButtonPin = 4;
 
 // Knob constants
-const unsigned int encoderPinOne = 0;
+const unsigned int encoderPinOne = 8; // INT0
 const unsigned int encoderPinTwo = 1;
 const unsigned int numPatterns   = 6;
 
@@ -49,7 +49,7 @@ LPD8806 strip = LPD8806(nLEDs, dataPin, clockPin);
 volatile int color = 0;
 volatile int disco = 0;
 
-volatile int pattern = 1;
+volatile int pattern = 0;
 volatile int prevKnobState = 0;
 
 Encoder knob(encoderPinOne, encoderPinTwo);
@@ -61,18 +61,22 @@ volatile int fadeState = 0;
 
 void setup() {
 
+  // knob button
+  pinMode(4, INPUT_PULLUP);
+
   // arcade buttons
+  pinMode(5, INPUT_PULLUP);
   pinMode(6, INPUT_PULLUP);
   pinMode(7, INPUT_PULLUP);
-  pinMode(8, INPUT_PULLUP);
+
   pinMode(9, INPUT_PULLUP);
   pinMode(10, INPUT_PULLUP);
 
-  // set pins 6 & 7 to fire interrupts
-  PCMSK0 |= (1<<PCINT7) | (1<<PCINT6);
+  // set pins 4, 5, 6 & 7 to fire interrupts
+  PCMSK0 |= (1<<PCINT4) | (1<<PCINT5) | (1<<PCINT6) | (1<<PCINT7);
 
-  // set pins 8, 9 & 10 to fire interrupts
-  PCMSK1 |= (1<<PCINT8) | (1<<PCINT9) | (1<<PCINT10);
+  // set pins 9 & 10 to fire interrupts
+  PCMSK1 |= (1<<PCINT9) | (1<<PCINT10);
 
   // Enable PCINT interrupts 0-7 and 8-11
   GIMSK |= (1<<PCIE0) | (1<<PCIE1);
@@ -232,7 +236,6 @@ void clearStrip() {
 
 
 void changeLights(int pattern, int r, int g, int b) {
-  // Using intervals of 4 because the knob I have is really sensitive.
   switch(pattern) {
     case 0:
       solidLights(r, g, b);
@@ -258,9 +261,9 @@ void changeLights(int pattern, int r, int g, int b) {
 void loop() {
   // Read knob
   long knobState = knob.read();
-  if (knobState != prevKnobState ) {
+  if (knobState != prevKnobState) {
     prevKnobState = knobState;
-    pattern = knobState % numPatterns;
+    pattern = abs(int(knobState / 4)) % numPatterns;
   }
 
   // Change LEDs based on state
@@ -284,7 +287,11 @@ void loop() {
 
 // Pins 0-7
 ISR(PCINT0_vect) {
-  if (digitalRead(6) == LOW) {
+  if (digitalRead(4) == LOW) {
+    disco = 1;
+  } else if (digitalRead(5) == LOW) {
+    color = 0;
+  } else if (digitalRead(6) == LOW) {
     color = 0;
   } else if (digitalRead(7) == LOW) {
     color = 1;
@@ -293,9 +300,7 @@ ISR(PCINT0_vect) {
 
 // Pins 8-11
 ISR(PCINT1_vect) {
-  if (digitalRead(8) == LOW) {
-    color = 2;
-  } else if (digitalRead(9) == LOW) {
+  if (digitalRead(9) == LOW) {
     color = 3;
   } else if (digitalRead(10) == LOW) {
     color = 4;
