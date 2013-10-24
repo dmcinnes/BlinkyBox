@@ -230,7 +230,9 @@ void discoRainbowLights(int wait) {
   int i;
   int j;
   int state = rainbowState;
-  for (j=0; j<10; j++) {
+
+  for (j=0; j<NUM_COLORS; j++) {
+    state = j;
     for (i=0; i<strip.numPixels(); i++) {
       strip.setPixelColor(i, rainbow_r[state], rainbow_g[state], rainbow_b[state]);
       state = state + 1;
@@ -239,9 +241,11 @@ void discoRainbowLights(int wait) {
     }
     strip.show();
     delay(wait/NUM_COLORS);
-    rainbowState = rainbowState + 1;
-    if (rainbowState == NUM_COLORS)
-      rainbowState = 0;
+  }
+
+  rainbowState = rainbowState + 1;
+  if (rainbowState == NUM_COLORS) {
+    rainbowState = 0;
   }
 }
 
