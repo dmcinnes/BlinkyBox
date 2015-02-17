@@ -11,7 +11,7 @@
    This is free to use and modify!
  */
 
-
+#include <Arduino.h>
 #include "LPD8806.h"
 #include <avr/sleep.h>
 
@@ -63,70 +63,13 @@ unsigned long currentMillis = 0;
 unsigned long lastMillis    = 0;
 unsigned long lastActivity  = 0;
 
-void setup() {
-
-  // arcade buttons
-  pinMode(0, INPUT_PULLUP);
-  pinMode(1, INPUT_PULLUP);
-  pinMode(2, INPUT_PULLUP);
-  pinMode(3, INPUT_PULLUP);
-  pinMode(4, INPUT_PULLUP);
-
-  // knob button
-  pinMode(5, INPUT_PULLUP);
-
-  // rotary knob
-  pinMode(9, INPUT_PULLUP);
-  pinMode(10, INPUT_PULLUP);
-
-  // set pins 0-5 to fire interrupts for buttons
-  PCMSK0 = (1<<PCINT0) | (1<<PCINT1) | (1<<PCINT2) | (1<<PCINT3) | (1<<PCINT4) | (1<<PCINT5);
-
-  // set pins 9 & 10 to fire interrupts for the rotary knob
-  PCMSK1 = (1<<PCINT8) | (1<<PCINT9); // PCINT8 is pin 10, PCINT9 is pin 9
-
-  // Enable PCINT interrupts 0-7 and 8-11
-  GIMSK = (1<<PCIE0) | (1<<PCIE1);
-
-  // Global interrupt enable
-  sei();
-
-  strip.begin();
+void clearStrip() {
+  int j;
+  for (j=0; j<strip.numPixels(); j++) {
+    strip.setPixelColor(j, 0, 0, 0);
+  }
   strip.show();
-  solidLights(127, 127, 127);
-  /*Serial.println("End setup!");*/
-
-  lastActivity = millis();
 }
-
-void goToSleep(void) {
-  // turn off the lights
-  solidLights(0, 0, 0);
-
-  ADCSRA &= ~_BV(ADEN); // disable ADC
-  ACSR   |= _BV(ACD);   // disable the analog comparator
-
-  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-  sleep_enable();
-  // turn off the brown-out detector.
-  // must have an ATtiny45 or ATtiny85 rev C or later for software to be able to disable the BOD.
-  // current while sleeping will be <0.5uA if BOD is disabled, <25uA if not.
-  cli();
-  uint8_t mcucr1 = MCUCR | _BV(BODS) | _BV(BODSE);  // turn off the brown-out detector
-  uint8_t mcucr2 = mcucr1 & ~_BV(BODSE);
-  MCUCR = mcucr1;
-  MCUCR = mcucr2;
-  sei();                         // ensure interrupts enabled so we can wake up again
-  sleep_cpu();                   // go to sleep
-  cli();                         // wake up here, disable interrupts
-  sleep_disable();
-
-  sei();                         // enable interrupts again
-
-  ADCSRA |= _BV(ADEN);   // enable ADC
-  ACSR   &= ~_BV(ACD);   // enable the analog comparator
-}
-
 
 void setIfPresent(int idx, int r, int g, int b) {
   // Don't write to non-existent pixels
@@ -270,14 +213,6 @@ void alternateLights(int wait, int r, int g, int b) {
   }
 }
 
-void clearStrip() {
-  int j;
-  for (j=0; j<strip.numPixels(); j++) {
-    strip.setPixelColor(j, 0, 0, 0);
-  }
-  strip.show();
-}
-
 
 void changeLights(int pattern, int r, int g, int b) {
   switch(pattern) {
@@ -300,6 +235,70 @@ void changeLights(int pattern, int r, int g, int b) {
       onOffLights(1000, r, g, b);
       break;
   }
+}
+
+void goToSleep(void) {
+  // turn off the lights
+  solidLights(0, 0, 0);
+
+  ADCSRA &= ~_BV(ADEN); // disable ADC
+  ACSR   |= _BV(ACD);   // disable the analog comparator
+
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  sleep_enable();
+  // turn off the brown-out detector.
+  // must have an ATtiny45 or ATtiny85 rev C or later for software to be able to disable the BOD.
+  // current while sleeping will be <0.5uA if BOD is disabled, <25uA if not.
+  cli();
+  uint8_t mcucr1 = MCUCR | _BV(BODS) | _BV(BODSE);  // turn off the brown-out detector
+  uint8_t mcucr2 = mcucr1 & ~_BV(BODSE);
+  MCUCR = mcucr1;
+  MCUCR = mcucr2;
+  sei();                         // ensure interrupts enabled so we can wake up again
+  sleep_cpu();                   // go to sleep
+  cli();                         // wake up here, disable interrupts
+  sleep_disable();
+
+  sei();                         // enable interrupts again
+
+  ADCSRA |= _BV(ADEN);   // enable ADC
+  ACSR   &= ~_BV(ACD);   // enable the analog comparator
+}
+
+void setup() {
+
+  // arcade buttons
+  pinMode(0, INPUT_PULLUP);
+  pinMode(1, INPUT_PULLUP);
+  pinMode(2, INPUT_PULLUP);
+  pinMode(3, INPUT_PULLUP);
+  pinMode(4, INPUT_PULLUP);
+
+  // knob button
+  pinMode(5, INPUT_PULLUP);
+
+  // rotary knob
+  pinMode(9, INPUT_PULLUP);
+  pinMode(10, INPUT_PULLUP);
+
+  // set pins 0-5 to fire interrupts for buttons
+  PCMSK0 = (1<<PCINT0) | (1<<PCINT1) | (1<<PCINT2) | (1<<PCINT3) | (1<<PCINT4) | (1<<PCINT5);
+
+  // set pins 9 & 10 to fire interrupts for the rotary knob
+  PCMSK1 = (1<<PCINT8) | (1<<PCINT9); // PCINT8 is pin 10, PCINT9 is pin 9
+
+  // Enable PCINT interrupts 0-7 and 8-11
+  GIMSK = (1<<PCIE0) | (1<<PCIE1);
+
+  // Global interrupt enable
+  sei();
+
+  strip.begin();
+  strip.show();
+  solidLights(127, 127, 127);
+  /*Serial.println("End setup!");*/
+
+  lastActivity = millis();
 }
 
 void loop() {
